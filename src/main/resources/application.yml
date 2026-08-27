@@ -2,10 +2,14 @@ spring:
   application:
     name: url-shortener
 
+  config:
+    import:
+      "optional:file:./config/secrets.yml"
+
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:url_shortener}
     username: ${DB_USER:postgres}
-    password: ${DB_PASSWORD:password}
+    password: ${DB_PASSWORD:}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 20
@@ -19,7 +23,7 @@ spring:
     locations: classpath:db/migration
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:url_shortener}
     user: ${DB_USER:postgres}
-    password: ${DB_PASSWORD:password}
+    password: ${DB_PASSWORD:}
 
   jpa:
     hibernate:
@@ -46,17 +50,48 @@ spring:
     redis:
       time-to-live: 3600000
 
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
 app:
   base-url: ${BASE_URL:http://localhost:8080}
   short-code:
     length: 7
     max-custom-length: 30
   jwt:
-    secret: ${JWT_SECRET:change-me-in-production-min-256-bits-long-secret}
-    expiration-ms: 86400000
+    secret: ${JWT_SECRET:}
+    expiration-ms: ${JWT_EXPIRATION_MS:}
+
   rate-limit:
-    capacity: 20
-    refill-per-minute: 10
+    auth:
+      enabled: true
+      capacity: 5
+      refill:
+        tokens: 5
+        duration: 1m
+      whitelist-ips:
+        - 127.0.0.1
+    urls:
+      enabled: true
+      capacity: 20
+      refill:
+        tokens: 20
+        duration: 1m
+      whitelist-ips: []
+
+    mail:
+      from: ${MAIL_FROM}
+      from-name: ${MAIL_FROM_NAME:URLShortener}
 
 management:
   endpoints:
@@ -70,7 +105,16 @@ management:
     tags:
       application: ${spring.application.name}
 
+# OpenAPI
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+
 logging:
   level:
-    com.example.url_shortener: INFO
-    org.springframework.security: WARN
+    com.example.url_shortener: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG

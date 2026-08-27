@@ -32,6 +32,15 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String password;
 
+    @Column(nullable = false)
+    private boolean enabled = false; // Default to false until verified
+
+    @Column(name = "verification_token", columnDefinition = "TEXT")
+    private String verificationToken;
+
+    @Column(name = "token_expires_at")
+    private Instant tokenExpiresAt;
+
     // Field-level initialization guarantees "ROLE_USER" is set whether using a builder or "new User()"
     @Column(nullable = false, length = 20)
     private String role = "ROLE_USER";
@@ -50,6 +59,11 @@ public class User implements UserDetails {
         if (role != null) {
             this.role = role;
         }
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return this.enabled; // Spring Security now blocks logins if enabled is false!
     }
 
     // --- UserDetails Implementation ---

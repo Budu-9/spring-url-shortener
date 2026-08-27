@@ -5,16 +5,18 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
+    volumes:
+      - ./config/secrets.yml:/app/config/secrets.yml:ro
+      - ./config/secrets-docker.yml:/app/config/secrets-docker.yml:ro
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: url_shortener
       DB_USER: postgres
-      DB_PASSWORD: password
       REDIS_HOST: redis
       REDIS_PORT: 6379
       BASE_URL: http://localhost:8080
-      JWT_SECRET: "change-me-in-production-min-256-bits-long-secret-key"
+      SPRING_PROFILES_ACTIVE: docker
     depends_on:
       postgres:
         condition: service_healthy
@@ -27,17 +29,23 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
+    secrets:
+      - db_password
+      - jwt_secret
 
   postgres:
     image: postgres:17-alpine
+    volumes:
+      - ./config/init-scripts:/docker-entrypoint-initdb.d:ro
+      - postgres_data:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: url_shortener
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
     ports:
       - "5433:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+    secrets:
+      - db_password
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -56,6 +64,14 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+  jwt_secret:
+    file: ./secrets/jwt_secret.txt
+  redis_password:
+    file: ./secrets/redis_password.txt
 
 volumes:
   postgres_data:
